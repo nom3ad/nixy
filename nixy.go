@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -74,21 +75,22 @@ type App struct {
 // Config struct used by the template engine
 type Config struct {
 	sync.RWMutex
-	Xproxy           string
-	Realm            string
-	Port             string   `json:"-"`
-	Marathon         []string `json:"-"`
-	User             string   `json:"-"`
-	Pass             string   `json:"-"`
-	NginxConfig      string   `json:"-" toml:"nginx_config"`
-	NginxTemplate    string   `json:"-" toml:"nginx_template"`
-	NginxCmd         string   `json:"-" toml:"nginx_cmd"`
-	NginxIgnoreCheck bool     `json:"-" toml:"nginx_ignore_check"`
-	LeftDelimiter    string   `json:"-" toml:"left_delimiter"`
-	RightDelimiter   string   `json:"-" toml:"right_delimiter"`
-	Statsd           StatsdConfig
-	LastUpdates      Updates
-	Apps             map[string]App
+	Xproxy                   string
+	Realm                    string
+	Port                     string   `json:"-"`
+	Marathon                 []string `json:"-"`
+	MarathonDisableTLSVerify bool     `json:"-" toml:"marathon_disable_tls_verify"`
+	User                     string   `json:"-"`
+	Pass                     string   `json:"-"`
+	NginxConfig              string   `json:"-" toml:"nginx_config"`
+	NginxTemplate            string   `json:"-" toml:"nginx_template"`
+	NginxCmd                 string   `json:"-" toml:"nginx_cmd"`
+	NginxIgnoreCheck         bool     `json:"-" toml:"nginx_ignore_check"`
+	LeftDelimiter            string   `json:"-" toml:"left_delimiter"`
+	RightDelimiter           string   `json:"-" toml:"right_delimiter"`
+	Statsd                   StatsdConfig
+	LastUpdates              Updates
+	Apps                     map[string]App
 }
 
 // Updates timings used for metrics
@@ -140,7 +142,7 @@ var logger = logrus.New()
 var eventqueue = make(chan bool, 2)
 
 // Global http transport for connection reuse
-var tr = &http.Transport{MaxIdleConnsPerHost: 10}
+var tr = &http.Transport{MaxIdleConnsPerHost: 10, TLSClientConfig: &tls.Config{InsecureSkipVerify: false}}
 
 func (c *Config) MergeAppsByLabel(label string) map[string]App {
 	apps := make(map[string]App, 0)
@@ -302,6 +304,11 @@ func main() {
 	if config.Xproxy == "" {
 		config.Xproxy, _ = os.Hostname()
 	}
+
+	if config.MarathonDisableTLSVerify {
+		tr.TLSClientConfig.InsecureSkipVerify = true
+	}
+
 	statsd, err = setupStatsd()
 	if err != nil {
 		logger.WithFields(logrus.Fields{

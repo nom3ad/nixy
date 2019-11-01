@@ -39,7 +39,10 @@ Nixy is a daemon that automatically configures Nginx for web services deployed o
     xproxy = ""
 
     # Marathon API
-    marathon = ["http://example01:8080", "http://example02:8080"] # add all HA cluster nodes in priority order.
+    marathon = ["http://example01:8080", "https://example02:8080"] # add all HA cluster nodes in priority order.
+    marathon_disable_tls_verify = true # Optionally disable SSL/TLS certificate validation.
+
+Read more at: https://www.thesslstore.com/blog/cms-plugins-disabling-ssl-tls-validation/ 
     user = "" # leave empty if no auth is required.
     pass = ""
     # Nixy realm, set this if you want to be able to filter your apps (e.g. when you have different loadbalancers which should expose different apps)
